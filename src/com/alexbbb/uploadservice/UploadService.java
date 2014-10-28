@@ -32,6 +32,7 @@ public class UploadService extends IntentService {
 
     private static final int UPLOAD_NOTIFICATION_ID = 1234; // Something unique
     private static final int UPLOAD_NOTIFICATION_ID_DONE = 1235; // Something unique
+    private static final int UPLOAD_NOTIFICATION_ID_ERROR = 1236; // Something unique
     private static final int BUFFER_SIZE = 4096;
     private static final String NEW_LINE = "\r\n";
     private static final String TWO_HYPHENS = "--";
@@ -211,7 +212,7 @@ public class UploadService extends IntentService {
         conn.setDoInput(true);
         conn.setDoOutput(true);
         conn.setUseCaches(false);
-        conn.setChunkedStreamingMode(0);
+        // conn.setChunkedStreamingMode(0);
         conn.setRequestMethod(method);
         conn.setRequestProperty("Connection", "Keep-Alive");
         conn.setRequestProperty("ENCTYPE", "multipart/form-data");
@@ -364,7 +365,8 @@ public class UploadService extends IntentService {
         notification.setContentTitle(notificationConfig.getTitle()).setContentText(notificationConfig.getMessage())
                 .setContentIntent(PendingIntent.getBroadcast(this, 0, new Intent(), PendingIntent.FLAG_UPDATE_CURRENT))
                 .setSmallIcon(notificationConfig.getIconResourceID()).setProgress(100, 0, true).setOngoing(true);
-
+        notification.setStyle(null);
+        
         startForeground(UPLOAD_NOTIFICATION_ID, notification.build());
     }
 
@@ -372,7 +374,8 @@ public class UploadService extends IntentService {
         notification.setContentTitle(notificationConfig.getTitle()).setContentText(notificationConfig.getMessage())
                 .setSmallIcon(notificationConfig.getIconResourceID()).setProgress(100, progress, false)
                 .setOngoing(true);
-
+        notification.setStyle(null);
+        
         startForeground(UPLOAD_NOTIFICATION_ID, notification.build());
     }
 
@@ -383,17 +386,27 @@ public class UploadService extends IntentService {
             notification.setContentTitle(notificationConfig.getTitle())
                     .setContentText(notificationConfig.getCompleted())
                     .setSmallIcon(notificationConfig.getIconResourceID()).setProgress(0, 0, false).setOngoing(false);
+            notification.setStyle(null);
 
             notificationManager.notify(UPLOAD_NOTIFICATION_ID_DONE, notification.build());
         }
     }
 
+    ArrayList<String> errorMessages = new ArrayList<String>();
     private void updateNotificationError() {
         stopForeground(false);
 
-        notification.setContentTitle(notificationConfig.getTitle()).setContentText(notificationConfig.getError())
-                .setSmallIcon(notificationConfig.getIconResourceID()).setProgress(0, 0, false).setOngoing(false);
+        errorMessages.add(notificationConfig.getTitle());
+        
+        StringBuilder errorMessage = new StringBuilder();
+        for (String message : errorMessages) {
+            errorMessage.append(message+"\n");
+        }
 
-        notificationManager.notify(UPLOAD_NOTIFICATION_ID_DONE, notification.build());
+        notification.setContentTitle(notificationConfig.getError()).setContentText(errorMessage.toString())
+                .setSmallIcon(notificationConfig.getIconResourceID()).setProgress(0, 0, false).setOngoing(false).setStyle(new NotificationCompat.BigTextStyle()
+                .bigText(errorMessage.toString()));
+
+        notificationManager.notify(UPLOAD_NOTIFICATION_ID_ERROR, notification.build());
     }
 }
